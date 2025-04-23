@@ -34,7 +34,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
   }
 
   void _toggleReminder(PlantReminder reminder) async {
-    setState(() {
+      setState(() {
       reminder.isEnabled = !reminder.isEnabled;
     });
     if (reminder.isEnabled) {
@@ -83,7 +83,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
                       initialTime: selectedTime,
                     );
                     if (picked != null) {
-                      setState(() {
+    setState(() {
                         selectedTime = picked;
                       });
                     }
