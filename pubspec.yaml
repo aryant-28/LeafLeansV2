@@ -1,0 +1,57 @@
+name: leaf_lens
+description: AI Plant Doctor Chatbot with leaf scanning capabilities
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=2.17.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.5
+  camera: ^0.11.0
+  image_picker: ^1.0.4
+  tflite_flutter: ^0.10.3
+  provider: ^6.0.5
+  http: ^1.1.0
+  shared_preferences: ^2.2.0
+  path_provider: ^2.1.1
+  intl: ^0.19.0
+  flutter_chat_ui: ^1.6.9
+  flutter_chat_types: ^3.6.1
+  permission_handler: ^11.0.0
+  flutter_svg: ^2.0.7
+  google_fonts: ^5.1.0
+  uuid: ^4.0.0
+  flutter_staggered_animations: ^1.1.1
+  flutter_local_notifications: ^16.2.0
+  timezone: ^0.9.2
+  firebase_core: ^2.0.0
+  firebase_auth: ^4.0.0
+  cloud_firestore: ^4.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.2
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/ml_models/
+    - assets/locales/
+
+# Configuration for flutter_launcher_icons
+flutter_launcher_icons:
+  android: "launcher_icon"   # Use true if you want adaptive icons, otherwise name
+  ios: true
+  image_path: "assets/images/logo.jpeg" # Path to your source icon
+  min_sdk_android: 21 # Optional: Specify minimum SDK for adaptive icons
+  # Optional: You can also specify separate images for adaptive icons
+  # adaptive_icon_background: "#ffffff" # Optional: background color for adaptive icons
+  # adaptive_icon_foreground: "assets/images/logo_foreground.png" # Optional: foreground layer 
