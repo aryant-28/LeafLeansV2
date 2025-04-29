@@ -1,198 +1,339 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'models/language_model.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'screens/home_screen.dart';
-import 'screens/splash_screen.dart';
-import 'utils/app_localization.dart';
-import 'screens/reminder_screen.dart';
-import 'services/basic_notification.dart';
-import 'services/scheduled_notification_service.dart';
 
-// App color scheme
-class AppColors {
-  static const Color primaryGreen = Color(0xFF1E5631); // Royal green
-  static const Color lightGreen = Color(0xFF3A8651);
-  static const Color beige = Color(0xFFF5F2E9);
-  static const Color darkBeige = Color(0xFFE8E2D5);
-  static const Color textDark = Color(0xFF2D3A35);
-  static const Color textLight = Color(0xFF6C7D73);
-}
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(MyApp());
-}
+// Only import Firebase packages if supported
+// (Do not import firebase_core, firebase_auth, etc. at the top level)
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final String languageCode = prefs.getString('language_code') ?? 'en';
-
-    // Initialize notification services
+  print('Starting app initialization...');
+  bool isFirebaseSupported = kIsWeb || Platform.isAndroid || Platform.isIOS;
+  if (isFirebaseSupported) {
+    print('Initializing Firebase...');
     try {
-      await BasicNotification.initialize();
-      await ScheduledNotificationService().initialize();
-      print("Notification services initialized successfully");
-    } catch (e) {
-      print("Failed to initialize notification services: $e");
-      // Continue even if notification initialization fails
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      print('Firebase initialized!');
+    } catch (e, stack) {
+      print('Firebase initialization failed: $e');
+      print('Stack trace: $stack');
     }
+  }
+  runApp(MyApp(isFirebaseSupported: isFirebaseSupported));
+}
 
-    runApp(
-      ChangeNotifierProvider(
-        create: (_) => LanguageModel(languageCode),
-        child: const MyApp(),
-      ),
+class MyApp extends StatelessWidget {
+  final bool isFirebaseSupported;
+  const MyApp({Key? key, required this.isFirebaseSupported}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: isFirebaseSupported
+          ? const AuthGate()
+          : const LinuxUnsupportedScreen(),
     );
-  } catch (e) {
-    print("Error during app initialization: $e");
-    // Fallback initialization
-    runApp(
-      ChangeNotifierProvider(
-        create: (_) => LanguageModel('en'),
-        child: const MyApp(),
+  }
+}
+
+class LinuxUnsupportedScreen extends StatelessWidget {
+  const LinuxUnsupportedScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('LeafLens')),
+      body: const Center(
+        child: Text(
+          'Firebase is not supported on Linux.\nPlease run this app on Android, iOS, or Web.',
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+// --- Firebase Auth Logic for Supported Platforms ---
+// Only included on Android/iOS/Web
+// (If you get errors on Linux, comment out this section)
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final languageModel = Provider.of<LanguageModel>(context);
-
-    // Define base text theme using Google Fonts
-    final baseTextTheme = GoogleFonts.poppinsTextTheme(
-      Theme.of(context).textTheme,
+    print('Building AuthGate...');
+    return StreamBuilder<User?> (
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        print('AuthGate snapshot: \\${snapshot.connectionState}, hasData: \\${snapshot.hasData}');
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasData) {
+          return const HomeScreen();
+        }
+        return const LoginScreen();
+      },
     );
+  }
+}
 
-    return MaterialApp(
-      title: 'LeafLens - Plant Doctor',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: AppColors.primaryGreen,
-        scaffoldBackgroundColor: AppColors.beige,
-        colorScheme: ColorScheme.light(
-          primary: AppColors.primaryGreen,
-          secondary: AppColors.lightGreen,
-          surface: AppColors.beige,
-          background: AppColors.beige,
-          onPrimary: Colors.white,
-          onSecondary: Colors.white,
-          onSurface: AppColors.textDark,
-          onBackground: AppColors.textDark,
-          error: Colors.redAccent,
-          onError: Colors.white,
-        ),
-        appBarTheme: AppBarTheme(
-          backgroundColor: AppColors.primaryGreen,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          centerTitle: true,
-          titleTextStyle: baseTextTheme.titleLarge?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryGreen,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({Key? key}) : super(key: key);
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
+  String? _error;
+
+  // Demo credentials
+  final String _demoEmail = 'demo@example.com';
+  final String _demoPassword = 'password123';
+
+  Future<void> _login() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _error = e.message;
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _demoLogin() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      // Try to sign in with demo credentials
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _demoEmail,
+        password: _demoPassword,
+      );
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') {
+        // If demo user doesn't exist, try to sign up
+        try {
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: _demoEmail,
+            password: _demoPassword,
+          );
+          // After sign up, try to log in again
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
+            email: _demoEmail,
+            password: _demoPassword,
+          );
+        } catch (signupError) {
+          setState(() {
+            _error = 'Demo login failed: \\${signupError.toString()}';
+          });
+        }
+      } else {
+        setState(() {
+          _error = 'Demo login failed: \\${e.message}';
+        });
+      }
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _navigateToSignUp() async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const SignUpScreen()),
+    );
+    if (result == 'success' && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Account created! Please log in.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Login')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(labelText: 'Email'),
             ),
-            textStyle: baseTextTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.w600,
+            const SizedBox(height: 16),
+            TextField(
+              controller: _passwordController,
+              decoration: const InputDecoration(labelText: 'Password'),
+              obscureText: true,
             ),
-          ),
+            const SizedBox(height: 16),
+            if (_error != null)
+              Text(_error!, style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 16),
+            _isLoading
+                ? const CircularProgressIndicator()
+                : Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton(
+                            onPressed: _login,
+                            child: const Text('Login'),
+                          ),
+                          ElevatedButton(
+                            onPressed: _navigateToSignUp,
+                            child: const Text('Sign Up'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _demoLogin,
+                        child: const Text('Demo Login'),
+                      ),
+                    ],
+                  ),
+          ],
         ),
-        outlinedButtonTheme: OutlinedButtonThemeData(
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.primaryGreen,
-            side: const BorderSide(color: AppColors.primaryGreen, width: 1.5),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            textStyle: baseTextTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        cardTheme: CardTheme(
-          color: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          elevation: 3,
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: AppColors.darkBeige,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 12,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(
-              color: AppColors.primaryGreen,
-              width: 1.5,
-            ),
-          ),
-          hintStyle: baseTextTheme.bodyLarge?.copyWith(
-            color: AppColors.textLight,
-          ),
-        ),
-        textTheme: baseTextTheme.copyWith(
-          bodyLarge: baseTextTheme.bodyLarge?.copyWith(
-            color: AppColors.textDark,
-            fontSize: 16,
-          ),
-          bodyMedium: baseTextTheme.bodyMedium?.copyWith(
-            color: AppColors.textLight,
-            fontSize: 14,
-          ),
-          titleLarge: baseTextTheme.titleLarge?.copyWith(
-            color: AppColors.textDark,
-            fontWeight: FontWeight.w600,
-          ),
-          titleMedium: baseTextTheme.titleMedium?.copyWith(
-            color: AppColors.textDark,
-            fontWeight: FontWeight.w500,
-          ),
-          labelLarge: baseTextTheme.labelLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        useMaterial3: true,
       ),
-      locale: Locale(languageModel.currentLanguage),
-      supportedLocales: const [
-        Locale('en', ''), // English
-        Locale('hi', ''), // Hindi
-        Locale('mr', ''), // Marathi
-      ],
-      localizationsDelegates: const [
-        AppLocalization.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      home: const SplashScreen(),
+    );
+  }
+}
+
+class SignUpScreen extends StatefulWidget {
+  const SignUpScreen({Key? key}) : super(key: key);
+
+  @override
+  State<SignUpScreen> createState() => _SignUpScreenState();
+}
+
+class _SignUpScreenState extends State<SignUpScreen> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
+  String? _error;
+
+  Future<void> _signup() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    // Phone number validation: must be exactly 10 digits, numeric only
+    final phone = _phoneController.text.trim();
+    if (!RegExp(r'^\d{10}$').hasMatch(phone)) {
+      setState(() {
+        _isLoading = false;
+        _error = 'Please enter a valid 10-digit phone number.';
+      });
+      return;
+    }
+    try {
+      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      // Update display name
+      await userCredential.user?.updateDisplayName(_nameController.text.trim());
+      print('Sign-up successful, now signing out...');
+      await FirebaseAuth.instance.signOut();
+      print('Signed out after sign-up. Returning to login screen.');
+      try {
+        Navigator.of(context).pop('success');
+        print('Navigator.pop called with success.');
+      } catch (e) {
+        print('Navigator.pop failed: $e. Trying popUntil.');
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _error = e.message;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Sign Up')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: 'Name'),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _phoneController,
+              decoration: const InputDecoration(labelText: 'Phone Number'),
+              keyboardType: TextInputType.phone,
+              maxLength: 10,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(labelText: 'Email'),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _passwordController,
+              decoration: const InputDecoration(labelText: 'Password'),
+              obscureText: true,
+            ),
+            const SizedBox(height: 16),
+            if (_error != null)
+              Text(_error!, style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 16),
+            _isLoading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: _isLoading ? null : _signup,
+                    child: const Text('Sign Up'),
+                  ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,0 +1,12 @@
+diff --git a/android/src/main/java/com/dexterous/flutterlocalnotifications/FlutterLocalNotificationsPlugin.java b/android/src/main/java/com/dexterous/flutterlocalnotifications/FlutterLocalNotificationsPlugin.java
+index 1234567..89abcdef 100644
+--- a/android/src/main/java/com/dexterous/flutterlocalnotifications/FlutterLocalNotificationsPlugin.java
++++ b/android/src/main/java/com/dexterous/flutterlocalnotifications/FlutterLocalNotificationsPlugin.java
+@@ -1030,7 +1030,7 @@ public class FlutterLocalNotificationsPlugin implements FlutterPlugin, MethodCallH
+       if (bigPicture != null) {
+         bigPictureStyle.bigPicture(bigPicture);
+       }
+-      bigPictureStyle.bigLargeIcon(null);
++      bigPictureStyle.bigLargeIcon((Bitmap)null);
+       notificationBuilder.setStyle(bigPictureStyle);
+     } 

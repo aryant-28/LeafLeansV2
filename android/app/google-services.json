@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "435858422988",
+    "project_id": "leaflens-2baac",
+    "storage_bucket": "leaflens-2baac.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:435858422988:android:4feed41e42392f5c255669",
+        "android_client_info": {
+          "package_name": "com.example.leaf_lens"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "435858422988-m6935k2vo1712or98jlfddt33p4llf1e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDcOuu-EXywQ_0IozXoGwI9pFBJcz1EF2c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "435858422988-m6935k2vo1712or98jlfddt33p4llf1e.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "435858422988-kobfd73mrdt2v9ndbgbjih4e1v9kvp1r.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.leafLens"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

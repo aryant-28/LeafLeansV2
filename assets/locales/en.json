@@ -37,6 +37,14 @@
   "chat_with_plant_doctor": "Chat with Plant Doctor",
   "type_message": "Type your message",
   "chat_tip": "Tip: You can ask specific questions about plant diseases, care routines, or fertilizers",
+  "loading_chat": "Loading chat history...",
+  "api_key": "API Key",
+  "api_key_description": "Enter your Gemini API key to use the chat service",
+  "api_key_saved": "API key saved successfully",
+  "api_key_error": "Failed to save API key",
+  "clear_history": "Clear History",
+  "clear_history_confirm": "Are you sure you want to clear the chat history? This cannot be undone",
+  "clear": "Clear",
   
   "language": "Language",
   "about": "About",
@@ -76,5 +84,10 @@
   "enabled": "Enabled",
   "cancel": "Cancel",
   "save": "Save",
-  "update": "Update"
+  "update": "Update",
+  "current_plant_condition": "Current Plant Condition",
+  "condition": "Condition",
+  "severity": "Severity",
+  "ask_about_condition": "Ask about {condition}...",
+  "treatment_tips": "Ask about treatment options, prevention tips, or care instructions for this condition"
 } 

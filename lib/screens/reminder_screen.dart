@@ -33,14 +33,14 @@ class _ReminderScreenState extends State<ReminderScreen> {
     }
   }
 
-  void _toggleReminder(PlantReminder reminder) async {
+  void _toggleReminder(PlantReminder reminder) {
       setState(() {
       reminder.isEnabled = !reminder.isEnabled;
     });
     if (reminder.isEnabled) {
-      await _notifier.scheduleReminder(reminder);
+      _notifier.scheduleReminder(reminder);
     } else {
-      await _notifier.cancelReminder(reminder.id);
+      _notifier.cancelReminder(reminder.id);
     }
   }
 
@@ -123,13 +123,32 @@ class _ReminderScreenState extends State<ReminderScreen> {
         itemBuilder: (context, index) {
           final reminder = reminders[index];
           return Card(
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: ListTile(
+              leading: Icon(
+                Icons.notifications,
+                color: Theme.of(context).primaryColor,
+              ),
               title: Text(reminder.plantName),
               subtitle: Text(
                   'Time: ${reminder.time.format(context)}\nNotes: ${reminder.notes.isNotEmpty ? reminder.notes : 'None'}'),
-              trailing: Wrap(
-                spacing: 8,
-                children: [
-                  Switch(
+              trailing: Switch(
                     value: reminder.isEnabled,
-                    onChanged: (_) => _toggle
+                onChanged: (value) => _toggleReminder(reminder),
+              ),
+              onTap: () => _editReminder(reminder),
+            ),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addReminder,
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  void _editReminder(PlantReminder reminder) {
+    // TODO: Implement reminder editing
+  }
+}
